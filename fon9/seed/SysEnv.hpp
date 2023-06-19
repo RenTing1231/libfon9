@@ -50,7 +50,7 @@ public:
 
    /// \ref fon9::GetCmdArg()
    /// \retval nullptr  def.Name_ 已存在.
-   SysEnvItemSP Add(int argc, char** argv, const CmdArgDef& def);
+   SysEnvItemSP Add(int argc, const char* argv[], const CmdArgDef& def);
    SysEnvItemSP Add(SysEnvItemSP item) {
       if (static_cast<SysEnvTree*>(this->Sapling_.get())->Add(item))
          return item;
@@ -70,7 +70,7 @@ public:
    /// 加入:
    /// - fon9_kCSTR_SysEnvItem_CommandLine: 程式啟動時的參數: argv[0] + " " + argv[1]...
    /// - fon9_kCSTR_SysEnvItem_ExecPath:    getcwd()
-   void Initialize(int argc, char** argv);
+   void Initialize(int argc, const char* argv[]);
 };
 
 

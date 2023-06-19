@@ -60,18 +60,34 @@ public:
    RoleTree() : base{MakeLayout()} {
    }
 
-   bool GetRole(const StrView& roleId, RoleConfig& res) const {
+   bool GetRole(const StrView& roleId, RoleConfig& res, RoleMgr::GetRoleMode mode) const {
       struct ResultHandler {
-         RoleConfig* Result_;
+         RoleConfig*          Result_;
+         RoleMgr::GetRoleMode Mode_;
+         uint32_t             Padding___;
          void InLocking(const PolicyItem&) {
          }
          void OnUnlocked(DetailPolicyTree& detailTree) {
             DetailTable::Locker pmap{static_cast<RoleConfigTree*>(&detailTree)->DetailTable_};
-            this->Result_->PolicyKeys_ = *pmap;
+            switch (this->Mode_) {
+            default:
+            case RoleMgr::GetRoleMode_Renew:
+               this->Result_->PolicyKeys_ = *pmap;
+               return;
+            case RoleMgr::GetRoleMode_Append:
+            case RoleMgr::GetRoleMode_Replace:
+               for (auto i : *pmap) {
+                  auto& policy = this->Result_->PolicyKeys_.kfetch(i.first);
+                  if (policy.second.empty() || this->Mode_ == RoleMgr::GetRoleMode_Replace)
+                     policy.second = i.second;
+               }
+               break;
+            }
          }
       };
-      res.RoleId_.assign(roleId);
-      return this->GetPolicy(roleId, ResultHandler{&res});
+      if (mode == RoleMgr::GetRoleMode_Renew)
+         res.RoleId_.assign(roleId);
+      return this->GetPolicy(roleId, ResultHandler{&res, mode, 0});
    }
 };
 
@@ -81,8 +97,8 @@ RoleMgr::RoleMgr(std::string name)
    : base(new RoleTree{}, std::move(name)) {
 }
 
-bool RoleMgr::GetRole(StrView roleId, RoleConfig& res) {
-   return static_cast<RoleTree*>(this->Sapling_.get())->GetRole(roleId, res);
+bool RoleMgr::GetRole(StrView roleId, RoleConfig& res, GetRoleMode mode) {
+   return static_cast<RoleTree*>(this->Sapling_.get())->GetRole(roleId, res, mode);
 }
 
 } } // namespaces

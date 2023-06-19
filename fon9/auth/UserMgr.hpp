@@ -14,16 +14,6 @@ using SaltedPass = ByteVector;
 /// - Argon2 = (opslimit * 10000) + memlimit(MB). 尚未支援.
 using PassAlgParam = uint64_t;
 
-/// \ingroup auth
-/// 使用者的 [狀態 or 管制] 旗標.
-enum class UserFlags : uint32_t {
-   /// 必須修改密碼後才能登入.
-   NeedChgPass = 0x01,
-   /// 使用者鎖定, 禁止認證.
-   Locked = 0x02,
-};
-fon9_ENABLE_ENUM_BITWISE_OP(UserFlags);
-
 enum class HashPassFlag {
    ResetNone = 0,
    ResetSalt = 0x01,
@@ -103,8 +93,11 @@ public:
    UserEv      EvLastErr_;
    /// 密碼錯誤次數, 一旦認證成功(或改密碼成功)此值會歸零.
    uint8_t     ErrCount_ = 0;
-   uint8_t     FilledForAlign_[3];
+   uint8_t     Padding_FilledForAlign___[3];
    UserFlags   UserFlags_ = UserFlags::NeedChgPass;
+   /// 配合 UserFlags::AllowBeAuthz; 檢查: 有哪些 authc 允許使用此 UserRec 當成 authz;
+   /// 使用 ';' 分隔, 不理會空白;
+   CharVector  AuthcList_;
 };
 
 //--------------------------------------------------------------------------//
@@ -128,7 +121,8 @@ public:
    }
 
    using LockedUser = std::pair<Locker, UserRec*>;
-   LockedUser GetLockedUser(const AuthResult& uid);
+   /// 僅取出授權用的使用者資料, 不檢查 Authc/Authz 的相關權限;
+   LockedUser GetLockedUserForAuthz(const AuthResult& authr);
 
    /// - passRec:
    ///   - rcode = fon9_Auth_PassChanged  則必須提供 passRec, 若沒提供則會直接 crash!
@@ -168,8 +162,8 @@ public:
    }
 
    using LockedUser = UserTree::LockedUser;
-   LockedUser GetLockedUser(const AuthResult& uid) {
-      return static_cast<UserTree*>(this->Sapling_.get())->GetLockedUser(uid);
+   LockedUser GetLockedUserForAuthz(const AuthResult& uid) {
+      return static_cast<UserTree*>(this->Sapling_.get())->GetLockedUserForAuthz(uid);
    }
 
    /// 如果登入成功, 則會更新 authr.ExtInfo_

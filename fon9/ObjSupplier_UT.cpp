@@ -45,7 +45,7 @@ using ObjSupplier = fon9::ObjSupplier<ObjectT, kObjectCountInCarrier>;
 
 //--------------------------------------------------------------------------//
 
-int main(int argc, char** argv) {
+int main(int argc, const char* argv[]) {
    fon9::AutoPrintTestInfo utinfo{"ObjSupplier"};
    fon9::GetDefaultTimerThread();
    std::this_thread::sleep_for(std::chrono::milliseconds{20});

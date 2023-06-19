@@ -36,7 +36,7 @@ void ExgMdFmt13Handler::PkContOnReceived(const void* pkptr, unsigned pksz, SeqT 
    // dealTime = 143000 即時傳送成交價格及股數；如沒有成交，成交價格及股數傳送 0。
    const bool  isCalc = (dealTime < fon9::TimeInterval_HHMMSS(14, 30, 00));
    CheckPublishSymbSessionSt(symbs, *symb,
-                             f9fmkt::TwsBaseFlag::AggregateAuction,
+                             f9fmkt::TwsBaseFlag::MatchingMethod_AggregateAuction,
                              (isCalc ? f9fmkt_TradingSessionSt_Open : f9fmkt_TradingSessionSt_Closed),
                              f9fmkt_TradingSessionId_OddLot);
 

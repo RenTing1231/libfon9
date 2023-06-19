@@ -5,20 +5,20 @@
 
 namespace fon9 {
 
-static int    gArgc;
-static char** gArgv;
-void SetCmdArg(int argc, char** argv) {
+static int           gArgc;
+static const char**  gArgv;
+void SetCmdArg(int argc, const char* argv[]) {
    gArgc = argc;
    gArgv = argv;
 }
-char** GetCmdArgv() {
+const char** GetCmdArgv() {
    return gArgv;
 }
 int GetCmdArgc() {
    return gArgc;
 }
 
-StrView GetCmdArg(int argc, char** argv, const StrView& argShort, const StrView& argLong) {
+StrView GetCmdArg(int argc, const char* argv[], const StrView& argShort, const StrView& argLong) {
    if (argv == nullptr) {
       argv = gArgv;
       argc = gArgc;
@@ -64,7 +64,7 @@ StrView GetCmdArg(int argc, char** argv, const StrView& argShort, const StrView&
    }
    return StrView{nullptr};
 }
-StrView GetCmdArg(int argc, char** argv, const CmdArgDef& def) {
+StrView GetCmdArg(int argc, const char* argv[], const CmdArgDef& def) {
    StrView retval = GetCmdArg(argc, argv, def.ArgShort_, def.ArgLong_);
    if (!retval.empty())
       return retval;

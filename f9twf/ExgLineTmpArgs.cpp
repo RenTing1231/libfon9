@@ -18,24 +18,26 @@ std::string ExgLineTmpArgs::Verify() const {
    return std::string{};
 }
 fon9::ConfigParser::Result ExgLineTmpArgs::OnTagValue(fon9::StrView tag, fon9::StrView& value) {
-   if (tag == "ApCode")
+   if (fon9::iequals(tag, "ApCode"))
       this->ApCode_ = static_cast<TmpApCode>(fon9::StrTo(&value, fon9::underlying_type_t<TmpApCode>{}));
-   else if (tag == "SessionId")
+   else if (fon9::iequals(tag, "SessionId"))
       TmpPutValue(this->SessionId_, fon9::StrTo(&value, TmpSessionId_t{}));
-   else if (tag == "FcmId")
+   else if (fon9::iequals(tag, "FcmId"))
       TmpPutValue(this->SessionFcmId_, fon9::StrTo(&value, TmpFcmId_t{}));
-   else if (tag == "Pass")
+   else if (fon9::iequals(tag, "Pass"))
       this->PassNum_ = fon9::StrTo(&value, this->PassNum_);
-   else if (tag == "PassKey") {
+   else if (fon9::iequals(tag, "PassKey")) {
       this->PassKey_.AssignFrom(value);
       return fon9::ConfigParser::Result::Success;
    }
-   else if (tag == "IsUseSymNum") {
+   else if (fon9::iequals(tag, "IsUseSymNum")) {
       this->IsUseSymNum_ = (value.Get1st() == 'Y');
       return fon9::ConfigParser::Result::Success;
    }
-   else if (tag == "FcInterval")
+   else if (fon9::iequals(tag, "FcInterval"))
       this->FcInterval_ = fon9::StrTo(&value, this->FcInterval_);
+   else if (fon9::iequals(tag, "LineFc"))
+      this->LineFc_.OnValue(value);
    else
       return fon9::ConfigParser::Result::EUnknownTag;
    return value.empty() ? fon9::ConfigParser::Result::Success : fon9::ConfigParser::Result::EInvalidValue;

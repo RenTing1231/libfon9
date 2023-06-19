@@ -55,6 +55,8 @@ typedef enum fon9_Auth_R : int {
    fon9_Auth_ENeedChgPass = -104,
    /// 不允許的使用者來源(例:ip黑名單).
    fon9_Auth_EUserFrom = -105,
+   /// Authc 使用 Authz 認證, 相關的錯誤, 請檢查錯誤訊息.
+   fon9_Auth_EAuthz = -106,
 
    /// 不支援的功能.
    fon9_Auth_ENoSupport = -200,

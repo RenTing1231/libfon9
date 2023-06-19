@@ -50,8 +50,12 @@ void FixReceiver::InitFixConfig(FixConfig& fixcfg) {
    mcfg->FixMsgHandler_ = &OnRecvResendRequest;
 }
 void FixReceiver::OnRecvResendRequest(const FixRecvEvArgs& rxargs) {
-   if (rxargs.SeqSt_ != FixSeqSt::Conform)
+   // -----[
+   // if (rxargs.SeqSt_ != FixSeqSt::Conform)
+   // 因為即使序號正確, 也會因 IsEnumContains(mcfg->FixSeqAllow_, FixSeqSt::NoPreRecord) 而沒有寫入紀錄,
+   // 所以這裡離律強制寫入記錄.
       rxargs.FixSender_->GetFixRecorder().Write(f9fix_kCSTR_HdrReplay, rxargs.MsgStr_);
+   // -----]
    FixTag errTag;
    if (const FixParser::FixField* fldBeginSeqNo = rxargs.Msg_.GetField(errTag = f9fix_kTAG_BeginSeqNo)) {
       if (const FixParser::FixField* fldEndSeqNo = rxargs.Msg_.GetField(errTag = f9fix_kTAG_EndSeqNo)) {

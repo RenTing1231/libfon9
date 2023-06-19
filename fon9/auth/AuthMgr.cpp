@@ -7,7 +7,13 @@
 namespace fon9 { namespace auth {
 
 void AuthResult::UpdateRoleConfig() {
-   this->AuthMgr_->RoleMgr_->GetRole(ToStrView(this->RoleId_), *this);
+   this->AuthMgr_->RoleMgr_->GetRole(ToStrView(this->RoleId_), *this, RoleMgr::GetRoleMode_Renew);
+   if (!this->RoleId2_.empty()) {
+      this->AuthMgr_->RoleMgr_->GetRole(ToStrView(this->RoleId2_), *this,
+                                        (IsEnumContains(this->UserFlags_, UserFlags::AuthcRoleReplace)
+                                         ? RoleMgr::GetRoleMode_Replace
+                                         : RoleMgr::GetRoleMode_Append));
+   }
 }
 StrView AuthResult::GetPolicyId(StrView policyName) const {
    auto ifind = this->PolicyKeys_.find(PolicyName::MakeRef(policyName));
@@ -16,9 +22,9 @@ StrView AuthResult::GetPolicyId(StrView policyName) const {
    return ToStrView(ifind->second);
 }
 void AuthResult::RevPrintUser(RevBuffer& rbuf) const {
-   RevPrint(rbuf, this->AuthcId_);
    if (!this->AuthzId_.empty())
-      RevPrint(rbuf, this->AuthzId_, '/');
+      RevPrint(rbuf, '?', this->AuthzId_);
+   RevPrint(rbuf, this->AuthcId_);
 }
 void AuthResult::RevPrintUFrom(RevBuffer& rbuf, StrView devid) const {
    RevPrint(rbuf, '|', devid);

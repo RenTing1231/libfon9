@@ -120,12 +120,13 @@ PolicyAclAgent::PolicyAclAgent(seed::MaTree* authMgrAgents, std::string name)
 bool PolicyAclAgent::GetPolicy(const AuthResult& authr, PolicyConfig& res) {
    if (!static_cast<PolicyAclTree*>(this->Sapling_.get())->GetPolicy(authr.GetPolicyId(ToStrView(this->Name_)), res))
       return false;
-   static const char kUserId[] = "{UserId}";
-   StrView userId = authr.GetUserId();
-   res.Home_ = CharVectorReplace(ToStrView(res.Home_), kUserId, userId);
+   static const StrView kOldStrA[] = {"UserId}",                "Authz}"};
+   const StrView        newStrA[] = {ToStrView(authr.AuthcId_), authr.GetUserIdForAuthz()};
+   res.Home_ = CharVectorReplaceA(ToStrView(res.Home_), '{', kOldStrA, newStrA, 2);
    seed::AccessList acl{std::move(res.Acl_)};
-   for (auto& v : acl)
-      res.Acl_.kfetch(CharVectorReplace(ToStrView(v.first), kUserId, userId)).second = v.second;
+   for (auto& v : acl) {
+      res.Acl_.kfetch(CharVectorReplaceA(ToStrView(v.first), '{', kOldStrA, newStrA, 2)).second = v.second;
+   }
    PoAclAdjusters_.Publish(authr, res);
    return true;
 }

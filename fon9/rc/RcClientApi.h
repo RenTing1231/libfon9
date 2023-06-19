@@ -25,7 +25,22 @@ extern "C" {
 ///   - 其他為 log 檔開啟失敗的原因(errno).
 fon9_CAPI_FN(int) fon9_Initialize(const char* logFileFmt);
 /// 同 fon9_Initialize(); 但可在首次初始化時設定 rc session 的 iosv 參數.
+/// 若 iosvCfg == NULL; 則使用預設: "ThreadCount=1|Wait=Block";
+/// iosvCfg 未指定的參數預設值: ThreadCount=2|Wait=Block 不綁核, 
 fon9_CAPI_FN(int) f9rc_Initialize(const char* logFileFmt, const char* iosvCfg);
+/// 在首次 fon9_Initialize() or f9rc_Initialize() 之前, 可設定 DefaultThreadPool 的參數.
+/// - 在 fon9_Initialize() or f9rc_Initialize() 之後, 呼叫此處則沒有任何效果.
+/// - 若 usWakeupInterval == 0, 則表示需喚醒 DefaultThreadPool 時, 使用 notify_one();
+/// - 若 usWakeupInterval > 0,  則表示定時喚醒 DefaultThreadPool 的時間間隔(microsecond);
+fon9_CAPI_FN(void) fon9_PresetDefaultThreadPoolValues(uint8_t threadCount, uint64_t usWakeupInterval);
+/// 透過字串參數設定 DefaultThreadPool 參數: N/Interval
+/// - N: thread count;
+/// - Interval: 0(預設)=採用notify_one(), >0:喚醒間隔(例: 1ms);
+///   - 字串格式預設為秒, 例: 1.5 表示 1.5秒; 
+///   - 可加 ms 後綴, 表示毫秒(1/1000秒), 例: 500ms;
+fon9_CAPI_FN(void) fon9_PresetDefaultThreadPoolStrArg(const char* args);
+/// 透過執行時參數設定 DefaultThreadPool 參數: --DefaultThreadPool=N/Interval
+fon9_CAPI_FN(void) fon9_PresetDefaultThreadPoolCmdArg(int argc, const char* argv[]);
 
 /// 結束 fon9 函式庫.
 /// - 結束前必須先將所有建立的物件刪除:

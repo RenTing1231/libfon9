@@ -22,17 +22,17 @@ static fon9::ConfigParser::Result CopyToCharAry(CharAryT& dst, fon9::StrView& va
 }
 
 fon9::ConfigParser::Result ExgLineArgs::OnTagValue(fon9::StrView tag, fon9::StrView& value) {
-   if (tag == "BrkId")
+   if (fon9::iequals(tag, "BrkId"))
       return CopyToCharAry(this->BrkId_, value);
-   else if (tag == "SocketId" || tag == "PvcId")
+   else if (fon9::iequals(tag, "SocketId") || fon9::iequals(tag, "PvcId"))
       return CopyToCharAry(this->SocketId_, value);
-   else if (tag == "Pass")
+   else if (fon9::iequals(tag, "Pass"))
       this->PassNum_ = fon9::StrTo(&value, this->PassNum_);
-   else if (tag == "PassKey") {
+   else if (fon9::iequals(tag, "PassKey")) {
       this->PassKey_.AssignFrom(value);
       return fon9::ConfigParser::Result::Success;
    }
-   else if (tag == "HbInt")
+   else if (fon9::iequals(tag, "HbInt"))
       this->HbInterval_ = fon9::StrTo(&value, this->HbInterval_);
    else {
       return fon9::ConfigParser::Result::EUnknownTag;

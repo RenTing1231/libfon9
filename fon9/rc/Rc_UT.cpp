@@ -141,10 +141,9 @@ struct ClientTester {
       using base = fon9::rc::RcSession;
       const std::string Password_;
 
-      RcSessionClient(fon9::rc::RcFunctionMgrSP mgr, fon9::StrView userid, fon9::StrView password, f9rc_RcFlag rcflags)
-         : base(std::move(mgr), fon9::rc::RcSessionRole::User, rcflags)
+      RcSessionClient(fon9::rc::RcFunctionMgrSP mgr, fon9::StrView userId, fon9::StrView password, f9rc_RcFlag rcflags)
+         : base(std::move(mgr), fon9::rc::RcSessionRole::User, rcflags, userId)
          , Password_{password.ToString()} {
-         this->SetUserId(userid);
       }
       fon9::StrView GetAuthPassword() const override {
          return fon9::StrView{&this->Password_};

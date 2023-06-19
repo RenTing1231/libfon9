@@ -29,10 +29,10 @@ LayoutSP SysEnv::MakeDefaultLayout() {
    return new Layout1(fon9_MakeField2(SysEnvItem, Name),
                       new Tab{Named{"SysEnv"}, std::move(fields)});
 }
-SysEnvItemSP SysEnv::Add(int argc, char** argv, const CmdArgDef& def) {
+SysEnvItemSP SysEnv::Add(int argc, const char* argv[], const CmdArgDef& def) {
    return this->Add(new SysEnvItem(def, GetCmdArg(argc, argv, def).ToString()));
 }
-void SysEnv::Initialize(int argc, char** argv) {
+void SysEnv::Initialize(int argc, const char* argv[]) {
    std::string cmdstr{FilePath::NormalizePathName(StrView_cstr(argv[0]))};
    StrView     fn{&cmdstr};
    cmdstr = FilePath::NormalizeFileName(fn);

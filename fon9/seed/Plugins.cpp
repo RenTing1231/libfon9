@@ -9,12 +9,12 @@ PluginsHolder::~PluginsHolder() {
 void PluginsHolder::LogPluginsSt(LogLevel level, RevBufferList&& rbuf) {
    std::string stmsg;
    LogArgs     logArgs{level};
-   RevPrint(rbuf, this->CurFileName_, '#', this->CurEntryName_, '|');
+   RevPrint(rbuf, "PluginsId=", this->Id_, '|', this->CurFileName_, '#', this->CurEntryName_, '|');
    AddLogHeader(rbuf, logArgs.UtcTime_, level);
    BufferAppendTo(rbuf.cfront(), stmsg);
    if (fon9_UNLIKELY(level >= fon9::LogLevel_))
       LogWrite(logArgs, rbuf.MoveOut());
-   stmsg.pop_back(); // 移除尾端的 '\n';
+   stmsg.pop_back(); // 移除尾端的 '\n'; 讓 seed 顯示 stmsg 時, 格式不會亂掉.
    this->SetPluginStImpl(std::move(stmsg));
 }
 void PluginsHolder::StopPlugins() {

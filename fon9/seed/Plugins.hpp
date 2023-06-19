@@ -34,8 +34,9 @@ protected:
 public:
    /// Plugins 啟動時, 可透過 Root_ 尋找、建立必要的物件(e.g. "FactoryPark_Device");
    const MaTreeSP   Root_;
-   
-   PluginsHolder(MaTreeSP root) : Root_{std::move(root)} {
+   const CharVector Id_;
+
+   PluginsHolder(MaTreeSP root, StrView id) : Root_{std::move(root)}, Id_{id} {
    }
    virtual ~PluginsHolder();
 

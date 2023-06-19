@@ -254,16 +254,40 @@ SendRequestResult TradingLineManager::SendRequest_ByLinesOnly(TradingRequest& re
    // - 多線路時怎樣使用才是最好? 還要進一步研究.
    // => 經過 f9twsqd 在客戶端的實際驗證, 瞬間多筆時, 總是使用同一條線路, 延遲最低。
    //    所以系統增加一個選項, 由使用者決定使用哪種方法.
-   if (gTradingLineSelect_TryLastLine_YN != EnabledYN::Yes)
+   // => 但須要考慮 TCP 的流量機制(需考慮對方 TCP 的 Window size, 中繼設備(Router/Switch...)則可能會被改變此值).
+   //    所以使用 [TradingLine.強制換線筆數] 機制;
+   TimeStamp utcNow;
+   if (gTradingLineSelect_TryLastLine_YN == EnabledYN::Yes) {
+      utcNow = UtcNow();
+      if (tsvr.LastIndex_ < lineCount) {
+         const auto* lastLine = tsvr.Lines_[tsvr.LastIndex_];
+         if ((utcNow - tsvr.LastLineSentBeginTime_) > lastLine->LineFlowInterval() || lastLine->LineFlowInterval().IsZero()) {
+            // 超過[開始計數時間]: 清除計數器.
+            tsvr.LastLineSentCount_ = 0;
+         }
+         else if (tsvr.LastLineSentCount_ >= lastLine->LineFlowCount()) {
+            // 超過[強制換線筆數]: 換條線路;
+            tsvr.LastLineSentCount_ = 0;
+            ++tsvr.LastIndex_;
+         }
+      }
+   }
+   else {
       ++tsvr.LastIndex_;
+   }
 
    for (size_t L = 0; L < lineCount; ++L) {
    __RETRY_SAME_INDEX:
       if (tsvr.LastIndex_ >= lineCount)
          tsvr.LastIndex_ = 0;
       LineSendResult resSend = tsvr.Lines_[tsvr.LastIndex_]->SendRequest(req);
-      if (fon9_LIKELY(resSend == LineSendResult::Sent))
+      if (fon9_LIKELY(resSend == LineSendResult::Sent)) {
+         if (gTradingLineSelect_TryLastLine_YN == EnabledYN::Yes) {
+            if (fon9_UNLIKELY(++tsvr.LastLineSentCount_ == 1))
+               tsvr.LastLineSentBeginTime_ = utcNow;
+         }
          return SendRequestResult::Sent;
+      }
 
       if (fon9_LIKELY(resSend >= LineSendResult::FlowControl)) {
          if (resFlowControl < LineSendResult::FlowControl || resSend < resFlowControl)

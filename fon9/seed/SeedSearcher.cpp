@@ -157,6 +157,10 @@ void SeedSearcher::ContinuePodForRemove(TreeOp& opTree, StrView keyText, StrView
          return;
       }
       this->RemainPath_.SetBegin(keyText.begin());
+      if (!IsEnumContains(opTree.Tree_.LayoutSP_->Flags_, TreeFlag::Removable)) {
+         this->OnError(OpResult::not_supported_remove_pod);
+         return;
+      }
       this->OnBeforeRemove(opTree, keyText, tab);
       opTree.Remove(keyText, tab, [this, &removedHandler](const PodRemoveResult& res) {
          if (res.OpResult_ == OpResult::removed_pod || res.OpResult_ == OpResult::removed_seed)

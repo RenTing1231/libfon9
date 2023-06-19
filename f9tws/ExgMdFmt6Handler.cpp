@@ -31,7 +31,7 @@ bool CheckPublishSymbSessionSt(ExgMdSymbs& symbs, ExgMdSymb& symb,
       fon9::fmkt::MdRtsPackFieldValue(rts, *tabBase->Fields_.Get("Session"), rd);
    }
    if (fon9::fmkt::GetMatchingMethod(symb.TwsFlags_) != matchingMethod) {
-      symb.TwsFlags_ = (symb.TwsFlags_ - fon9::fmkt::TwsBaseFlag::MatchingMethodMask) | matchingMethod;
+      SetMatchingMethod(&symb.TwsFlags_, matchingMethod);
       fon9::fmkt::MdRtsPackFieldValue(rts, *tabBase->Fields_.Get("TwsFlags"), rd);
    }
    if (symb.TradingSessionSt_ != tradingSessionSt) {

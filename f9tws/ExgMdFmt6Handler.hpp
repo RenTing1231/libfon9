@@ -105,8 +105,8 @@ inline void FmtRt_PkContOnReceived(ExgMdHandlerPkCont& handler, ExgMdSymbs& symb
       }
    }
    const f9fmkt::TwsBaseFlag matchingMethod = ((mdfmt.StatusMask_ & 0x10)
-                                               ? f9fmkt::TwsBaseFlag::ContinuousMarket
-                                               : f9fmkt::TwsBaseFlag::AggregateAuction);
+                                               ? f9fmkt::TwsBaseFlag::MatchingMethod_ContinuousMarket
+                                               : f9fmkt::TwsBaseFlag::MatchingMethod_AggregateAuction);
    CheckPublishSymbSessionSt(symbs, *symb, matchingMethod, tradingSessionSt, kTradingSessionId);
 
    fon9::RevBufferList  rts{pksz};

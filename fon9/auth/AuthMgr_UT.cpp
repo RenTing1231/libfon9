@@ -324,7 +324,7 @@ void TestPoAclGetPolicy() {
    fon9::Framework fon9sys;
    StartFramework(fon9sys, kInnSyncOutFileName, kInnSyncInFileName);
    fon9::auth::AuthResult authr{fon9sys.MaAuth_};
-   authr.AuthzId_.assign("fonwin");
+   authr.AuthcId_.assign("fonwin"); // 裡面 "{UserId}" 的設定, 會用 AuthcId 來取代? 若有需要使用 Authz 則用 "{Authz}";
    authr.RoleId_.assign("test");
    if (auto poAcl = fon9sys.MaAuth_->Agents_->Get<fon9::auth::PolicyAclAgent>("PoAcl")) {
       fon9::seed::AclConfig   aclConfig;

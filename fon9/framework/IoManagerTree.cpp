@@ -348,7 +348,7 @@ void IoManagerTree::Apply(const seed::Fields& flds, StrView src, DeviceMapImpl& 
          if (!isNewItem) {
             if (item->Config_ == this->OldCfg_)
                return;
-            item->AsyncDisposeDevice(this->Now_, "Config changed");
+            item->AsyncDisposeDevice(this->Now_, "Io Config changed");
          }
          item->Sch_.Parse(ToStrView(item->Config_.SchArgs_));
       }

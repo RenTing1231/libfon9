@@ -41,14 +41,14 @@ fon9_API SaslClientR CreateSaslClient(StrView saslMechList, char chSplitter,
                                       const StrView& authz, const StrView& authc, const StrView& pass) {
    if (const char* pspl = authc.Find('/')) {
       fon9::StrView mechName{authc.begin(), pspl};
-      if (StrSearchSubstr(saslMechList, mechName, chSplitter)) {
+      if (StrSearchSubstr(saslMechList, mechName, chSplitter, false)) {
          if (const SaslClientMech_Password* mech = FindSaslClientCreator(mechName))
             return SaslClientR{mech->Name_, mech->Creator_(authz, fon9::StrView{pspl + 1, authc.end()}, pass)};
       }
    }
    else {
       for (SaslClientMech_Password& c : SaslClientMech_Password_) {
-         if (StrSearchSubstr(saslMechList, c.Name_, chSplitter))
+         if (StrSearchSubstr(saslMechList, c.Name_, chSplitter, false))
             return SaslClientR{c.Name_, c.Creator_(authz, authc, pass)};
       }
    }

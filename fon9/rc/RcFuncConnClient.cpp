@@ -69,11 +69,11 @@ public:
       }
       if (!strSuccess.empty() && (rcode.RCode_ == fon9_Auth_Success || rcode.RCode_ == fon9_Auth_PassChanged))
          rcode.Info_ = std::move(strSuccess);
-      ses.OnSaslDone(rcode, ToStrView(ses.GetUserId()));
+      ses.OnSaslDone_AtClient(rcode);
    }
 };
 void RcFuncSaslClient::OnSessionConnected(RcSession& ses, StrView saslMechList) {
-   auth::SaslClientR sasl{auth::CreateSaslClient(saslMechList, ' ', StrView{}, ToStrView(ses.GetUserId()), ses.GetAuthPassword())};
+   auth::SaslClientR sasl{auth::CreateSaslClient(saslMechList, ' ', ToStrView(ses.GetAuthzId()), ToStrView(ses.GetUserId()), ses.GetAuthPassword())};
    if (!sasl.SaslClient_) {
       ses.ForceLogout("Could not find a suitable SASL mechanism.");
       return;

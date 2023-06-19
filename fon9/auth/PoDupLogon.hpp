@@ -91,10 +91,10 @@ public:
    ///   - 超過允許的最多上線數量, 呼叫端必須拒絕此次連線;
    ///   - 有設定「綁定來源」但來源不符預期;
    ///   - 此時 rcode 會填入適當的錯誤碼及訊息;
-   bool CheckLogon(const StrView& userId, const StrView& protocolId, const StrView& userFrom,
+   bool CheckLogon(const AuthResult& authr, const StrView& protocolId, const StrView& userFrom,
                    PoDupLogonClientSP cli, auth::AuthR& rcode);
    /// 若沒有找到 policy 設定, 則 cfg = PoDupLogonAct::RejectOld;
-   bool CheckLogonR(const StrView& userId, const StrView& protocolId, const StrView& userFrom,
+   bool CheckLogonR(const AuthResult& authr, const StrView& protocolId, const StrView& userFrom,
                     PoDupLogonClientSP cli, auth::AuthR& rcode, PoDupLogonAct& cfg);
    PoDupLogonAct GetDupLogonAct(const StrView& userId, const StrView& protocolId) const;
 

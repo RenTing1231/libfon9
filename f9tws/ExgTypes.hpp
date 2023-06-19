@@ -43,6 +43,9 @@ static inline bool IsTwsOTypeDb(TwsOType ot) {
 static inline bool IsTwsOTypeCr(TwsOType ot) {
    return ot == TwsOType::CrSelf || ot == TwsOType::CrAgent;
 }
+static inline bool IsTwsOTypeSBL(TwsOType ot) {
+   return ot == TwsOType::SBL5 || ot == TwsOType::SBL6;
+}
 
 enum class TwsApCode : char {
    /// '0' TWSE:普通股交易子系統 / OTC:等價交易子系統.

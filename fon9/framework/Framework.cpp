@@ -29,9 +29,11 @@ static void RaiseInitializeError(std::string err) {
    Raise<std::runtime_error>(err);
 }
 
-int Framework::Initialize(int argc, char** argv) {
+int Framework::Initialize(int argc, const char* argv[]) {
    IsFrameworkInitializing = true;
-   fon9::SetCmdArg(argc, argv);
+   SetCmdArg(argc, argv);
+   PresetDefaultThreadPoolCmdArg(argc, argv);
+
    auto workDir = GetCmdArg(argc, argv, CmdArgDef{
       StrView{"WorkDir"}, //Name
       StrView{},          //DefaultValue

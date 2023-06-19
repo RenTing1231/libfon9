@@ -56,6 +56,37 @@ struct ExgMdBaseInfoParser {
       this->Symb_->Ref_.Data_.PriRef_.Assign<4>(fon9::PackBcdTo<uint64_t>(pk.PriRefV4_));
       this->Symb_->Ref_.Data_.PriUpLmt_.Assign<4>(fon9::PackBcdTo<uint64_t>(pk.PriUpLmtV4_));
       this->Symb_->Ref_.Data_.PriDnLmt_.Assign<4>(fon9::PackBcdTo<uint64_t>(pk.PriDnLmtV4_));
+      SetMatchingMethod(&this->Symb_->TwsFlags_, (fon9::PackBcdTo<uint32_t>(pk.MatchingCycleSeconds_) > 0
+                                                  ? fon9::fmkt::TwsBaseFlag::MatchingMethod_AggregateAuction
+                                                  : fon9::fmkt::TwsBaseFlag::MatchingMethod_ContinuousMarket));
+
+      switch (fon9::PackBcdTo<uint8_t>(pk.AnomalyCode_)) {
+      case 0:
+         this->Symb_->StkAnomalyCode_ = fon9::fmkt::StkAnomalyCode::Normal;
+         break;
+      default:
+      case 1:
+         this->Symb_->StkAnomalyCode_ = fon9::fmkt::StkAnomalyCode::Attention;
+         break;
+      case 2:
+         this->Symb_->StkAnomalyCode_ = fon9::fmkt::StkAnomalyCode::Disposition;
+         break;
+      case 3:
+         this->Symb_->StkAnomalyCode_ = fon9::fmkt::StkAnomalyCode::Attention | fon9::fmkt::StkAnomalyCode::Disposition;
+         break;
+      case 4:
+         this->Symb_->StkAnomalyCode_ = fon9::fmkt::StkAnomalyCode::FurtherDisposition;
+         break;
+      case 5:
+         this->Symb_->StkAnomalyCode_ = fon9::fmkt::StkAnomalyCode::Attention | fon9::fmkt::StkAnomalyCode::FurtherDisposition;
+         break;
+      case 6:
+         this->Symb_->StkAnomalyCode_ = fon9::fmkt::StkAnomalyCode::FlexibleDisposition;
+         break;
+      case 7:
+         this->Symb_->StkAnomalyCode_ = fon9::fmkt::StkAnomalyCode::Attention | fon9::fmkt::StkAnomalyCode::FlexibleDisposition;
+         break;
+      }
    }
    template <class MdFmt>
    void ParseShUnit(const MdFmt& pk) {
@@ -75,7 +106,23 @@ struct ExgMdBaseInfoParserV9 : public ExgMdBaseInfoParser {
    using ExgMdBaseInfoParser::ExgMdBaseInfoParser;
    template <class MdFmt>
    void ParseCTGCD(const MdFmt& pk) {
-      this->Symb_->StkCTGCD_ = pk.StkCTGCD_ == '0' ? fon9::fmkt::StkCTGCD::Normal : static_cast<fon9::fmkt::StkCTGCD>(pk.StkCTGCD_);
+      switch (pk.StkCTGCD_) {
+      case ' ': case '0':
+         this->Symb_->StkCTGCD_ = fon9::fmkt::StkCTGCD::Normal;
+         break;
+      default:
+         this->Symb_->StkCTGCD_ = static_cast<fon9::fmkt::StkCTGCD>(pk.StkCTGCD_);
+         break;
+      }
+      if (pk.IsMarginSale_BelowPriRef_ == 'Y')
+         this->Symb_->TwsFlags_ |= fon9::fmkt::TwsBaseFlag::AllowDb_BelowPriRef;
+      else
+         this->Symb_->TwsFlags_ -= fon9::fmkt::TwsBaseFlag::AllowDb_BelowPriRef;
+
+      if (pk.IsSecuritiesLendingSale_BelowPriRef_ == 'Y')
+         this->Symb_->TwsFlags_ |= fon9::fmkt::TwsBaseFlag::AllowSBL_BelowPriRef;
+      else
+         this->Symb_->TwsFlags_ -= fon9::fmkt::TwsBaseFlag::AllowSBL_BelowPriRef;
    }
 };
 

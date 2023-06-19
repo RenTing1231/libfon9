@@ -241,11 +241,16 @@ void ExgLineTmpSession::OnRecvTmpLinkSys(const TmpHeaderSt& pktmp) {
       ->Initialize(TmpLogPacketType::Info, fon9::CalcDataSize(rbuf.cfront()), this->LastRxTime_);
    this->Log_.Append(rbuf.MoveOut());
 
+   this->GetApReadyInfo(rbuf);
+   fon9::RevPrint(rbuf, fon9::StrView{msgApReady + 1, sizeof(msgApReady) - 3}); // +1, -3: 移除頭尾的 '|' 及 EOS;
    this->LineMgr_.OnSession_StateUpdated(
       *this->Dev_,
-      fon9::StrView{msgApReady + 1, sizeof(msgApReady) - 3}, // +1, -3: 移除頭尾的 '|' 及 EOS;
+      fon9::ToStrView(fon9::BufferTo<std::string>(rbuf.MoveOut())),
       fon9::LogLevel::Info);
    this->OnExgTmp_ApReady();
+}
+void ExgLineTmpSession::GetApReadyInfo(fon9::RevBufferList& rbuf) {
+   (void)rbuf;
 }
 
 void ExgLineTmpSession::OnDevice_CommonTimer(fon9::io::Device& dev, fon9::TimeStamp now) {

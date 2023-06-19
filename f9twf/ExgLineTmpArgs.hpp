@@ -4,17 +4,20 @@
 #define __f9twf_ExgLineTmpArgs_hpp__
 #include "f9twf/ExgTmpTypes.hpp"
 #include "fon9/ConfigParser.hpp"
+#include "fon9/FlowCounter.hpp"
 
 namespace f9twf {
 
 struct f9twf_API ExgLineTmpArgs {
-   TmpApCode            ApCode_;
-   TmpSessionId         SessionId_;
-   TmpFcmId             SessionFcmId_;
-   bool                 IsUseSymNum_;
-   uint16_t             PassNum_;
-   fon9::CharAry<16>    PassKey_;
-   fon9::TimeInterval   FcInterval_;
+   TmpApCode               ApCode_;
+   TmpSessionId            SessionId_;
+   TmpFcmId                SessionFcmId_;
+   bool                    IsUseSymNum_;
+   uint16_t                PassNum_;
+   fon9::CharAry<16>       PassKey_;
+   fon9::TimeInterval      FcInterval_;
+   fon9::FlowCounterArgs   LineFc_;
+   char                    Padding____[4];
 
    void Clear() {
       fon9::ForceZeroNonTrivial(this);
@@ -23,6 +26,11 @@ struct f9twf_API ExgLineTmpArgs {
    std::string Verify() const;
 
    uint16_t GetPassNum() const;
+
+   fon9::TimeInterval GetFcInterval() const {
+      return this->FcInterval_.IsNullOrZero()
+         ? fon9::TimeInterval_Second(1) : this->FcInterval_;
+   }
 };
 
 /// - cfg = "FcmId=數字代號|SessionId=|Pass=|ApCode="; 每個欄位都必須提供.

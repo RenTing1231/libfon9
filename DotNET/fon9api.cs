@@ -28,6 +28,21 @@ namespace fon9
       [DllImport(fon9.DotNetApi.kDllName, EntryPoint = "f9rc_Initialize", CharSet = CharSet.Ansi)]
       public static extern int RcInitialize([MarshalAs(UnmanagedType.LPStr)] string logFileFmt, [MarshalAs(UnmanagedType.LPStr)] string iosvCfg);
 
+      /// 在首次 Initialize() or RcInitialize() 之前, 可設定 DefaultThreadPool 的參數.
+      /// - 在 Initialize() or RcInitialize() 之後, 呼叫此處則沒有任何效果.
+      /// - 若 usWakeupInterval == 0, 則表示需喚醒 DefaultThreadPool 時, 使用 notify_one();
+      /// - 若 usWakeupInterval > 0,  則表示定時喚醒 DefaultThreadPool 的時間間隔(microsecond);
+      [DllImport(fon9.DotNetApi.kDllName, EntryPoint = "fon9_PresetDefaultThreadPoolValues", CharSet = CharSet.Ansi)]
+      public static extern void PresetDefaultThreadPoolValues(Byte defaultThreadPool_ThreadCount, UInt64 usWakeupInterval);
+
+      /// 透過字串參數設定 DefaultThreadPool 參數: N/Interval
+      /// - N: thread count;
+      /// - Interval: 0(預設)=採用notify_one(), >0:喚醒間隔(例: 1ms);
+      ///   - 字串格式預設為秒, 例: 1.5 表示 1.5秒; 
+      ///   - 可加 ms 後綴, 表示毫秒(1/1000秒), 例: 500ms;
+      [DllImport(fon9.DotNetApi.kDllName, EntryPoint = "fon9_PresetDefaultThreadPoolStrArg", CharSet = CharSet.Ansi)]
+      public static extern void PresetDefaultThreadPoolStrArg([MarshalAs(UnmanagedType.LPStr)] string args);
+
       /// 結束 fon9 函式庫.
       /// - 結束前必須先將所有建立的物件刪除:
       ///   - 例如: f9rc_CreateClientSession() => f9rc_DestroyClientSession();

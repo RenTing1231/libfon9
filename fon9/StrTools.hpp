@@ -518,11 +518,17 @@ inline bool StrView_RemoveBOM(StrView* src) {
 //--------------------------------------------------------------------------//
 
 /// \ingroup AlNum
-/// 在 fullstr 裡面尋找 substr, 參數範例:
-/// - fullstr = "aaa bbb ccc ddd"
-/// - substr = "ccc"
-/// - chSplitter = ' '
-fon9_API const char* StrSearchSubstr(StrView fullstr, StrView substr, char chSplitter);
+/// - 在 fullstr 裡面尋找 substr, 參數範例1:
+///   - fullstr    = "aaa bbb ccc ddd"
+///   - substr     = "ccc"
+///   - chSplitter = ' '
+///   - isAllowSpc(若 chSplitter==' ', 則不理會此值);
+/// - 參數範例2:
+///   - fullstr    = "aaa; bbb; ccc; ddd"
+///   - substr     = "ccc"
+///   - chSplitter = ';'
+///   - isAllowSpc = true
+fon9_API const char* StrSearchSubstr(StrView fullstr, StrView substr, char chSplitter, bool isAllowSpc);
 
 template <class StrT>
 StrT StrReplaceImpl(StrView src, const StrView oldStr, const StrView newStr) {
@@ -554,6 +560,41 @@ StrT StrReplaceImpl(StrView src, const StrView oldStr, const StrView newStr) {
 
 fon9_API std::string StdStrReplace(StrView src, const StrView oldStr, const StrView newStr);
 fon9_API CharVector CharVectorReplace(StrView src, const StrView oldStr, const StrView newStr);
+
+/// \ingroup AlNum
+/// 尋找多個可能出現的字串, 然後取代成對應的字串;
+/// 範例:
+/// \code
+///   static const StrView kOldStrA[] = {"UserId}",                "Authz}"};
+///   const StrView        newStrA[] = {ToStrView(authr.AuthcId_), authr.GetUserIdForAuthz()};
+///   StrReplaceImplA<std::string>("Hello {UserId} {Authz}", '{', kOldStrA, newStrA, fon9::numofele(kOldStrA));
+/// \endcode
+template <class StrT>
+StrT StrReplaceImplA(StrView src, const char chOldLead, const StrView oldStrA[], const StrView newStrA[], const size_t kArySz) {
+   assert(kArySz > 0);
+   StrT res;
+   res.reserve(src.size());
+   StrView dst = src;
+   while (const char* p1st = dst.Find(chOldLead)) {
+      const auto  dstRemain = unsigned_cast(dst.end() - (++p1st));
+      const auto* iOldStr = &oldStrA[0];
+      for (unsigned iAry = 0; iAry < kArySz; ++iAry) {
+         const auto oldStrSz = iOldStr->size();
+         if (dstRemain >= oldStrSz && memcmp(p1st, iOldStr->begin(), oldStrSz) == 0) {
+            res.append(src.begin(), p1st - 1);
+            src.SetBegin(p1st += oldStrSz);
+            newStrA[iAry].AppendTo(res);
+            break;
+         }
+         ++iOldStr;
+      }
+      dst.SetBegin(p1st);
+   }
+   res.append(src.begin(), src.end());
+   return res;
+}
+fon9_API std::string StdStrReplaceA(StrView src, const char chOldLead, const StrView oldStrA[], const StrView newStrA[], const size_t kArySz);
+fon9_API CharVector CharVectorReplaceA(StrView src, const char chOldLead, const StrView oldStrA[], const StrView newStrA[], const size_t kArySz);
 
 #ifndef fon9_POSIX
 #define fon9_MEMRCHR

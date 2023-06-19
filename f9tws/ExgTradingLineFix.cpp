@@ -12,6 +12,8 @@ constexpr uint32_t   kHeartBtInt = 10;
 //--------------------------------------------------------------------------//
 
 fon9::ConfigParser::Result ExgTradingLineFixArgs::OnTagValue(fon9::StrView tag, fon9::StrView& value) {
+   if (fon9::iequals(tag, "LineFc"))
+      return this->LineFc_.OnValue(value);
    fon9::ConfigParser::Result r = this->FcArgs_.OnTagValue(tag, value);
    if (r == fon9::ConfigParser::Result::EUnknownTag)
       return base::OnTagValue(tag, value);
@@ -59,6 +61,7 @@ ExgTradingLineFix::ExgTradingLineFix(f9fix::IoFixManager&         mgr,
                                      const ExgTradingLineFixArgs& lineargs,
                                      f9fix::IoFixSenderSP&&       fixSender)
    : base(mgr, fixcfg)
+   , baseTradingLine(lineargs.LineFc_)
    , RawAppendNo_{static_cast<unsigned>(fon9::UtcNow().GetDecPart() / 1000)}
    , FlowCounter_{lineargs.FcArgs_}
    , LineArgs_(lineargs)

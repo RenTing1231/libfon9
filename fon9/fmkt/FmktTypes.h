@@ -21,6 +21,9 @@ fon9_ENUM(f9fmkt_RxKind, char) {
    f9fmkt_RxKind_RequestQuery  = 'Q',
    /// 修改條件單的觸發條件.
    f9fmkt_RxKind_RequestChgCond = 'c',
+   /// 重新嘗試某筆下單要求.
+   /// 例: 某下單要求被風控阻擋, 之後風控額度開放 or 主管確認可放行, 則透過此類要求重新執行下單步驟.
+   f9fmkt_RxKind_RequestRerun = 'R',
    /// 成交回報.
    f9fmkt_RxKind_Filled = 'f',
    /// 委託異動.

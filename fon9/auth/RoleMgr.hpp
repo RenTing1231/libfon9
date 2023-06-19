@@ -18,7 +18,15 @@ class fon9_API RoleMgr : public PolicyAgent {
 public:
    RoleMgr(std::string name);
 
-   bool GetRole(StrView roleId, RoleConfig& res);
+   enum GetRoleMode {
+      /// 清除 res.PolicyKeys_, 取得新的設定;
+      GetRoleMode_Renew,
+      /// 保留 res.PolicyKeys_, 增加 res.PolicyKeys_ 不存在的設定;
+      GetRoleMode_Append,
+      /// 保留 res.PolicyKeys_, 新的 Policy 若已存在則取代, 若不存在則新增;
+      GetRoleMode_Replace,
+   };
+   bool GetRole(StrView roleId, RoleConfig& res, GetRoleMode mode);
 
    bool LinkStorage(const InnDbfSP& storage) {
       return base::LinkStorage(storage, 128);

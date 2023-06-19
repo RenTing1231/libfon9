@@ -16,10 +16,36 @@ extern fon9_API EnabledYN   gTradingLineSelect_TryLastLine_YN;
 /// 交易連線基底.
 class fon9_API TradingLine {
    fon9_NON_COPY_NON_MOVE(TradingLine);
+
+protected:
+   /// 若有設定 gTradingLineSelect_TryLastLine_YN, 則在此線路連續傳送後, 若超過此時間間隔, 則重設傳送計數器.
+   /// 用於避免 TCP 流量(SND buffer 滿載) 造成的延遲;
+   /// 若為 LineFlowInterval_.IsZero(); 則不考慮此流量參數;
+   TimeInterval   LineFlowInterval_;
+   /// 若有設定 gTradingLineSelect_TryLastLine_YN, 則在此線路連續傳送 N 筆後, 強制切換線路.
+   /// 若為 0 or 1, 則只送 1 筆, 就切換線路.
+   unsigned       LineFlowCount_{0};
+   char           Padding____[4];
+
 public:
-   TradingLine() = default;
+   /// 瞬間傳送超過 lineFlowCount 筆, 則應切換線路;
+   /// [瞬間]的計算規則: 送出第1筆的時間點, 到現在的時間差. 不會針對[每一筆]考慮時間.
+   TradingLine(unsigned lineFlowCount, TimeInterval lineFlowInterval)
+      : LineFlowInterval_{lineFlowInterval}
+      , LineFlowCount_{lineFlowCount} {
+   }
+   template <class FlowCounterArgs>
+   TradingLine(const FlowCounterArgs& fc) : TradingLine(fc.FcCount_, TimeInterval_Millisecond(fc.FcTimeMS_)) {
+   }
 
    virtual ~TradingLine();
+
+   unsigned LineFlowCount() const {
+      return this->LineFlowCount_;
+   }
+   TimeInterval LineFlowInterval() const {
+      return this->LineFlowInterval_;
+   }
 
    enum class SendResult {
       Sent = 0,
@@ -94,9 +120,10 @@ public:
       TradingLines() = default;
       friend class TradingLineManager;
       using Lines = std::vector<TradingLine*>;
-      Lines    Lines_;
-      unsigned LastIndex_{0};
-      char     Padding___[4];
+      Lines       Lines_;
+      unsigned    LastIndex_{0};
+      unsigned    LastLineSentCount_{0};
+      TimeStamp   LastLineSentBeginTime_;
    public:
       bool IsLinesEmpty() const {
          return this->Lines_.empty();

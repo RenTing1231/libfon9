@@ -26,7 +26,7 @@ FixSenderSP FixSession::OnFixSessionDisconnected(const StrView& info) {
    this->FixSessionTimerStopNoWait();
    this->ClearFixSession(FixSessionSt::Disconnected);
    if (this->FixSender_) {
-      this->FixSender_->GetFixRecorder().Write(f9fix_kCSTR_HdrInfo, info);
+      this->FixSender_->GetFixRecorder().Write(f9fix_kCSTR_HdrInfo, "OnFixSessionDisconnected: ", info);
       this->RxArgs_.FixSender_ = nullptr;
    }
    return std::move(this->FixSender_);

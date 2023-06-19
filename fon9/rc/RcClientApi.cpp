@@ -84,6 +84,21 @@ fon9_Initialize(const char* logFileFmt) {
    return f9rc_Initialize(logFileFmt, nullptr);
 }
 
+fon9_CAPI_FN(void)
+fon9_PresetDefaultThreadPoolValues(uint8_t defaultThreadPool_ThreadCount, uint64_t usWakeupInterval) {
+   fon9::PresetDefaultThreadPoolValues(defaultThreadPool_ThreadCount, fon9::TimeInterval_Microsecond(fon9::signed_cast(usWakeupInterval)));
+}
+
+fon9_CAPI_FN(void)
+fon9_PresetDefaultThreadPoolCmdArg(int argc, const char* argv[]) {
+   fon9::PresetDefaultThreadPoolCmdArg(argc, argv);
+}
+fon9_CAPI_FN(void)
+fon9_PresetDefaultThreadPoolStrArg(const char* args) {
+   fon9::PresetDefaultThreadPoolStrArg(fon9::StrView_cstr(args));
+}
+
+
 fon9_CAPI_FN(fon9_IoManager*)
 f9rc_GetRcClientIoManager() {
    return RcClientMgr_.get();

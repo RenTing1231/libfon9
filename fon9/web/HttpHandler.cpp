@@ -98,16 +98,22 @@ io::RecvBufferSize HttpDispatcher::OnHttpHandlerNotFound(io::Device& dev, HttpRe
          RevPrint(rbuf, "<body>Handler not support: ");
       }
       else {
-         const char* pcurr = req.TargetCurr_.begin() - 1;
+         // 如果 req.TargetOrig_ == "../XXXX"; 例: 首行輸入的是 "GET ../ma/fon9ma.html HTTP/1.1";
+         // 則 req.TargetCurr_.begin() == req.TargetOrig_.begin();
+         // 雖然透過 browser 來的 target 通常會有 '/' 開頭; 但攻擊 or 弱點掃描工具, 不會如此;
+         const char* pcurr = req.TargetCurr_.begin();
+         if (pcurr > req.TargetOrig_.begin())
+            --pcurr;
          RevPrint(rbuf, "</body></html>");
          RevEncodeHtml(rbuf, StrView{req.TargetCurr_.end(), req.TargetOrig_.end()});
          RevPrint(rbuf, "</b>");
          RevEncodeHtml(rbuf, StrView{pcurr, req.TargetCurr_.end()});
          RevPrint(rbuf, "<b class='error'>");
          RevEncodeHtml(rbuf, StrView{req.TargetOrig_.begin(), pcurr});
-         RevPrint(rbuf, "<body>Handler not found: ");                  
+         RevPrint(rbuf, "<body>Handler not found: ");
       }
    }
+   fon9_LOG_WARN("HttpHandlerNotFound|dev=", ToPtr(&dev), "|method=", req.Method_, "|target=", req.TargetOrig_);
    return this->SendErrorPrefix(dev, req, fon9_kCSTR_HTTP_404_NotFound, std::move(rbuf));
 }
 

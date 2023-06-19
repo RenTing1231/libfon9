@@ -158,7 +158,7 @@ class ConsoleSeedSession : public fon9::SeedSession {
          if (cmdln.Get1st() == '#')
             continue;
          if (cmdln == "quit") {
-            fon9_LOG_IMP("main.quit|user=", this->GetAuthr().GetUserId());
+            fon9_LOG_IMP("main.quit|user=", this->GetAuthr().AuthcId_);
             return State::QuitApp;
          }
          if (cmdln == "exit")
@@ -210,7 +210,7 @@ public:
 
 //--------------------------------------------------------------------------//
 
-int fon9::Fon9CoRun(int argc, char** argv, int (*fnBeforeStart)(fon9::Framework&)) {
+int fon9::Fon9CoRun(int argc, const char* argv[], int (*fnBeforeStart)(fon9::Framework&)) {
 #if defined(_MSC_VER) && defined(_DEBUG)
    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
    //_CrtSetBreakAlloc(176);
@@ -238,7 +238,7 @@ void fon9::PlantMaAuth_UserAgent(Framework& fon9sys) {
    fon9::auth::PoDupLogonAgent::Plant(*fon9sys.MaAuth_);
 }
 
-int fon9::Fon9SysCoStart(fon9::Framework& fon9sys, int argc, char** argv, int (*fnBeforeStart)(fon9::Framework&)) {
+int fon9::Fon9SysCoStart(fon9::Framework& fon9sys, int argc, const char* argv[], int (*fnBeforeStart)(fon9::Framework&)) {
    int retval = fnBeforeStart ? fnBeforeStart(fon9sys) : 0;
    if (retval)
       fon9_AppBreakMsg = "Before fon9sys.Start()";

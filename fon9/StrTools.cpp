@@ -340,14 +340,19 @@ fon9_API void StrView_ToEscapeStr(std::string& dst, StrView src, StrView chSpeci
 
 //--------------------------------------------------------------------------//
 
-fon9_API const char* StrSearchSubstr(StrView fullstr, StrView substr, char chSplitter) {
+fon9_API const char* StrSearchSubstr(StrView fullstr, StrView substr, char chSplitter, bool isAllowSpc) {
    const char* pfind = std::search(fullstr.begin(), fullstr.end(), substr.begin(), substr.end());
    if (pfind == fullstr.end())
       return nullptr;
-   if (pfind == fullstr.begin() || *(pfind - 1) == chSplitter) {
+   if (pfind == fullstr.begin() || *(pfind - 1) == chSplitter || (isAllowSpc && fon9::isspace(*(pfind - 1)))) {
       const char* pend = pfind + substr.size();
-      if (pend == fullstr.end() || *pend == chSplitter)
-         return pfind;
+      for (;;) {
+         if (pend == fullstr.end() || *pend == chSplitter)
+            return pfind;
+         if (!isAllowSpc || !fon9::isspace(*pend))
+            return nullptr;
+         ++pend;
+      }
    }
    return nullptr;
 }
@@ -356,6 +361,12 @@ fon9_API std::string StdStrReplace(StrView src, const StrView oldStr, const StrV
 }
 fon9_API CharVector CharVectorReplace(StrView src, const StrView oldStr, const StrView newStr) {
    return StrReplaceImpl<CharVector>(src, oldStr, newStr);
+}
+fon9_API std::string StdStrReplaceA(StrView src, const char chOldLead, const StrView oldStrA[], const StrView newStrA[], const size_t kArySz) {
+   return StrReplaceImplA<std::string>(src, chOldLead, oldStrA, newStrA, kArySz);
+}
+fon9_API CharVector CharVectorReplaceA(StrView src, const char chOldLead, const StrView oldStrA[], const StrView newStrA[], const size_t kArySz) {
+   return StrReplaceImplA<CharVector>(src, chOldLead, oldStrA, newStrA, kArySz);
 }
 
 #ifdef fon9_MEMRCHR

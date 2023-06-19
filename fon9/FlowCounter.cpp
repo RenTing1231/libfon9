@@ -5,7 +5,7 @@
 namespace fon9 {
 
 ConfigParser::Result FlowCounterArgs::OnTagValue(StrView tag, StrView& value) {
-   if (tag == "Fc")
+   if (iequals(tag, "Fc"))
       return this->OnValue(value);
    return ConfigParser::Result::EUnknownTag;
 }

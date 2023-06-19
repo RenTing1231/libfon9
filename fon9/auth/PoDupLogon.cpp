@@ -19,6 +19,7 @@ struct PoDupLogonOnline : public intrusive_ref_counter<PoDupLogonOnline> {
    void* const                Owner_;
    const PoDupLogonSeqNo      SeqNo_;
    CharVector                 From_;
+   CharVector                 AuthzId_;
    TimeStamp                  LogonTime_{LocalNow()};
 
    PoDupLogonOnline(PoDupLogonClientSP&& cli, PoDupLogonSeqNo seqNo, void* owner)
@@ -189,6 +190,7 @@ class PoDupLogonTree : public PolicyTree {
 
    static LayoutSP MakeDetailLayout() {
       Fields fields;
+      fields.Add(fon9_MakeField2(PoDupLogonOnline, AuthzId));
       fields.Add(fon9_MakeField2(PoDupLogonOnline, From));
       fields.Add(fon9_MakeField2(PoDupLogonOnline, LogonTime));
       return LayoutSP{new Layout1(fon9_MakeField2(PoDupLogonOnline, SeqNo),
@@ -217,11 +219,11 @@ class PoDupLogonTree : public PolicyTree {
 public:
    PoDupLogonTree() : base{MakeLayout()} {
    }
-   PoDupLogonAct CheckLogon(StrView userId, StrView protocolId, const StrView userFrom,
+   PoDupLogonAct CheckLogon(StrView logonId, StrView authzId, StrView protocolId, const StrView userFrom,
                             PoDupLogonClientSP cli, auth::AuthR* rcode, PoDupLogonAct* cfg) {
       if (cfg)
          *cfg = PoDupLogonAct::RejectOld;
-      CharVector policyId{userId};
+      CharVector policyId{logonId};
       if (!protocolId.empty()) {
          policyId.push_back('.');
          policyId.append(protocolId);
@@ -245,7 +247,7 @@ public:
       if (ifind == maps->ItemMap_.end()) {
          if (protocolId.empty())
             return PoDupLogonAct::RejectOld; // 沒有設定 = 允許登入 = 不限制, 且不納入管制.
-         policyId.resize(userId.size());
+         policyId.resize(logonId.size());
          ifind = maps->ItemMap_.find(policyId);
          if (ifind == maps->ItemMap_.end())
             return PoDupLogonAct::RejectOld;
@@ -287,6 +289,7 @@ public:
       ++master->OnlineCount_;
       DetailTableImpl::value_type ousr{master->NextSeqNo_,
          new PoDupLogonOnline{std::move(cli), master->NextSeqNo_, master}};
+      ousr.second->AuthzId_.assign(authzId);
       ousr.second->From_.reserve(protocolId.size() + userFrom.size() + 1);
       ousr.second->From_.assign(protocolId);
       ousr.second->From_.push_back('|');
@@ -319,21 +322,23 @@ PoDupLogonAgent::PoDupLogonAgent(MaTree* authMgrAgents, std::string name)
 void PoDupLogonAgent::OnLogonClientClosed(PoDupLogonClient& cli) {
    static_cast<PoDupLogonTree*>(this->Sapling_.get())->OnLogonClientClosed(cli);
 }
-bool PoDupLogonAgent::CheckLogon(const StrView& userId, const StrView& protocolId, const StrView& userFrom,
+bool PoDupLogonAgent::CheckLogon(const AuthResult& authr, const StrView& protocolId, const StrView& userFrom,
                                  PoDupLogonClientSP cli, auth::AuthR& rcode) {
    return Is_PoDupLogonAct_RejectOld(
       static_cast<PoDupLogonTree*>(this->Sapling_.get())
-         ->CheckLogon(userId, protocolId, userFrom, std::move(cli), &rcode, nullptr));
+         ->CheckLogon(ToStrView(authr.AuthcId_), ToStrView(authr.AuthzId_), protocolId,
+                      userFrom, std::move(cli), &rcode, nullptr));
 }
-bool PoDupLogonAgent::CheckLogonR(const StrView& userId, const StrView& protocolId, const StrView& userFrom,
+bool PoDupLogonAgent::CheckLogonR(const AuthResult& authr, const StrView& protocolId, const StrView& userFrom,
                                   PoDupLogonClientSP cli, auth::AuthR& rcode, PoDupLogonAct& cfg) {
    return Is_PoDupLogonAct_RejectOld(
       static_cast<PoDupLogonTree*>(this->Sapling_.get())
-         ->CheckLogon(userId, protocolId, userFrom, std::move(cli), &rcode, &cfg));
+         ->CheckLogon(ToStrView(authr.AuthcId_), ToStrView(authr.AuthzId_), protocolId,
+                      userFrom, std::move(cli), &rcode, &cfg));
 }
 PoDupLogonAct PoDupLogonAgent::GetDupLogonAct(const StrView& userId, const StrView& protocolId) const {
    return static_cast<PoDupLogonTree*>(this->Sapling_.get())
-      ->CheckLogon(userId, protocolId, nullptr, nullptr, nullptr, nullptr);
+      ->CheckLogon(userId, StrView{}, protocolId, nullptr, nullptr, nullptr, nullptr);
 }
 
 } } // namespaces

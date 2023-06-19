@@ -35,7 +35,9 @@ public:
    const RcFunctionMgrSP   FunctionMgr_;
    const RcSessionRole     Role_;
 
-   RcSession(RcFunctionMgrSP mgr, RcSessionRole role, f9rc_RcFlag flags = f9rc_RcFlag{});
+   /// userId 格式 = "authc?authz"; 例: "fon"; "fon.t01?fon";
+   /// userId 解析後, 會填入: UserId_ = authc; AuthzId_ = authz;
+   RcSession(RcFunctionMgrSP mgr, RcSessionRole role, f9rc_RcFlag flags = f9rc_RcFlag{}, StrView userId = StrView{});
    ~RcSession();
 
    /// rbuf 必須已儲存了符合規則的 Function param.
@@ -65,7 +67,16 @@ public:
          this->Send(f9rc_FunctionCode_SASL, std::move(rbuf));
       }
    }
-   void OnSaslDone(auth::AuthR rcode, StrView userid);
+   void OnSaslDone_AtServer(auth::AuthR rcode, StrView userId, StrView authzId) {
+      assert(this->UserId_.empty() && this->AuthzId_.empty());
+      this->UserId_.assign(userId);
+      this->AuthzId_.assign(authzId);
+      this->OnSaslDone(rcode);
+   }
+   void OnSaslDone_AtClient(auth::AuthR rcode) {
+      assert(!this->UserId_.empty());
+      this->OnSaslDone(rcode);
+   }
 
    void ResetNote(f9rc_FunctionCode fnCode, RcFunctionNoteSP&& note) {
       if (static_cast<size_t>(fnCode) < this->Notes_.size())
@@ -106,11 +117,20 @@ public:
       this->RemoteParam_.ApVer_ = std::move(ver);
    }
 
-   void SetUserId(const StrView& userid) {
-      this->UserId_.assign(userid);
-   }
    const CharVector& GetUserId() const {
       return this->UserId_;
+   }
+   const CharVector& GetAuthzId() const {
+      return this->AuthzId_;
+   }
+   StrView GetUserIdForAuthz() const {
+      return ToStrView(this->AuthzId_.empty() ? this->UserId_ : this->AuthzId_);
+   }
+   /// 通常只有在 Server 端才會在斷線後清除 UserId 的訊息;
+   /// 通常會配合 OnSaslDone_AtServer(auth::AuthR rcode, StrView userId, StrView authzId); 設定 UserId;
+   void ClearUserId() {
+      this->UserId_.clear();
+      this->AuthzId_.clear();
    }
 
    const CharVector& GetRemoteIp() const {
@@ -156,6 +176,7 @@ private:
    void OnProtocolReady();
    io::RecvBufferSize OnDevice_Recv_CheckProtocolVersion(io::Device& dev, DcQueue& rxbuf);
    io::RecvBufferSize OnDevice_Recv_Parser(DcQueue& rxbuf);
+   void OnSaslDone(auth::AuthR rcode);
 
    // Acceptor 可選擇那些參數使用對方的設定.
    // f9rc_RcFlag    FollowRemote_;
@@ -168,6 +189,7 @@ private:
    TimeStamp         LastRecvTime_;
    TimeStamp         LastSentTime_;
    CharVector        UserId_;
+   CharVector        AuthzId_;
    CharVector        RemoteIp_;
    io::Device*       Dev_{};
    ProtocolParamRemote  RemoteParam_;

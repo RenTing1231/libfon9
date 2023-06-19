@@ -49,8 +49,6 @@ void GridViewToContainer::ParseConfigStr(StrView cfgstr) {
 }
 void GridViewToContainer::FillRaw(const RawWr& wr, StrView ln) {
    for (const Field* fld : this->Fields_) {
-      if (ln.empty())
-         break;
       StrView fldval = StrFetchNoTrim(ln, *fon9_kCSTR_CELLSPL);
       if (fld)
          fld->StrToCell(wr, fldval);

@@ -58,10 +58,9 @@ RcClientSessionEvHandler::~RcClientSessionEvHandler() {
 }
 
 RcClientSession::RcClientSession(RcFunctionMgrSP funcMgr, const f9rc_ClientSessionParams* params)
-   : base(std::move(funcMgr), RcSessionRole::User, params->RcFlags_)
+   : base(std::move(funcMgr), RcSessionRole::User, params->RcFlags_, StrView_cstr(params->UserId_))
    , Password_{params->Password_}
    , FnOnLinkEv_(params->FnOnLinkEv_) {
-   this->SetUserId(StrView_cstr(params->UserId_));
    this->UserData_ = params->UserData_;
    this->LogFlags_ = params->LogFlags_;
    for (unsigned L = 0; L < f9rc_FunctionCode_Count; ++L) {

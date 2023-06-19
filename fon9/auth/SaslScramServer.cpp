@@ -32,67 +32,82 @@ void SaslScramServer::ParseClientFirst(const AuthRequest& req) {
       return;
    case 'n':
       // client first message:
-      // "n,,n=USER,r=ClientNONCE"
-      // "n,,a=AUTHZ,n=USER,r=ClientNONCE"
+      // "Gs2Header"  "client_first_message_bare"
+      // "n,,"        "n=USER,r=ClientNONCE"
+      // "n,a=AUTHZ," "n=USER,r=ClientNONCE"
       const char* pbeg = reqstr.begin();
-      if (pbeg[1] == ',' && pbeg[2] == ',') {
-         reqstr.SetBegin(pbeg += 3);
-         // 移除 "n,," = client_first_message_bare = "a=authz,n=authc,r=nonce" 或 "n=authc,r=nonce"
-         // this->AuthMessage_ = client_first_message_bare + ","
-         //                    + server_first_message + ","
-         //                    + client_final_message_without_proof;
-         this->AuthMessage_ = reqstr.ToString(); // client_first_message_bare
-         this->AuthMessage_.push_back(',');
-         if (pbeg[0] == 'a') {
-            if (pbeg[1] != '=')
-               break;
-            reqstr.SetBegin(pbeg + 2);
-            this->AuthResult_.AuthzId_.assign(StrFetchNoTrim(reqstr, ','));
-            pbeg = reqstr.begin();
-         }
-         if (pbeg[0] != 'n' || pbeg[1] != '=')
+      StrView     gs2HeaderForAuthz;
+      if (*++pbeg != ',')
+         break;
+      // 必須是 "n,a=AUTHZ," or "n,,"
+      if (*++pbeg == 'a') {
+         if (*++pbeg != '=')
             break;
-         reqstr.SetBegin(pbeg + 2);
-         this->AuthResult_.AuthcId_.assign(StrFetchNoTrim(reqstr, ','));
+         reqstr.SetBegin(pbeg + 1);
+         this->AuthResult_.AuthzId_.assign(StrFetchNoTrim(reqstr, ','));
+         gs2HeaderForAuthz.Reset(pbeg - 3, reqstr.begin());
          pbeg = reqstr.begin();
-         if (pbeg[0] != 'r' || pbeg[1] != '=')
-            break;
-         // svr1stMsg = "r=ClientNONCE+ServerNONCE,s=SALT,i=ITERATOR"
-         bool  isUserFound;
-         {
-            auto  lockedUser = this->UserMgr_->GetLockedUser(this->AuthResult_);
-            if (lockedUser.second) {
-               this->AuthResult_.RoleId_ = lockedUser.second->RoleId_;
-               this->Pass_ = lockedUser.second->Pass_;
-               isUserFound = true;
-            }
-            else {
-               // 不論是否找到 user, 應該都要回覆, 避免攻擊得知 userid.
-               // this->OnVerifyCB_(AuthR{fon9_Auth_EUserPass, "unknown-user"}, this);
-               // return;
-               isUserFound = false;
-            }
-         }
-         if (!isUserFound)
-            this->SetDefaultPass();
-         const size_t   kServerNonceLengthReserve = 50;
-         std::string    svr1stMsg;
-         svr1stMsg.reserve(reqstr.size() + kServerNonceLengthReserve + 128);
-         reqstr.AppendTo(svr1stMsg);
-         this->AppendServerNonce(svr1stMsg);
-         const size_t   kNonceLength = svr1stMsg.size();
-         svr1stMsg.append(",s=", 3);
-         this->AppendSaltAndIterator(svr1stMsg);
-         if (isUserFound) {
-            this->AuthMessage_.append(svr1stMsg);
-            // ,client_final_message_without_proof
-            this->AuthMessage_.append(",c=biws,");
-            this->AuthMessage_.append(svr1stMsg.c_str(), kNonceLength);
-         }
-         this->OnVerifyCB_(AuthR(fon9_Auth_NeedsMore, std::move(svr1stMsg)), this);
-         return;
       }
-      break;
+      else if (*pbeg != ',') // "n,,"
+         break;
+      else {
+         reqstr.SetBegin(++pbeg);
+      }
+      // 移除 "Gs2Header" 之後 reqstr = client_first_message_bare = "n=authc,r=nonce";
+      // this->AuthMessage_ = client_first_message_bare + ","
+      //                    + server_first_message + ","
+      //                    + client_final_message_without_proof;
+      this->AuthMessage_ = reqstr.ToString(); // client_first_message_bare
+      this->AuthMessage_.push_back(',');
+      if (pbeg[0] != 'n' || pbeg[1] != '=')
+         break;
+      reqstr.SetBegin(pbeg + 2);
+      this->AuthResult_.AuthcId_.assign(StrFetchNoTrim(reqstr, ','));
+      pbeg = reqstr.begin();
+      if (pbeg[0] != 'r' || pbeg[1] != '=')
+         break;
+      // svr1stMsg = "r=ClientNONCE+ServerNONCE,s=SALT,i=ITERATOR"
+      bool  isUserFound;
+      {
+         auto  lockedUser = this->UserMgr_->GetLockedUserForAuthz(this->AuthResult_);
+         if (lockedUser.second) {
+            this->AuthResult_.RoleId_ = lockedUser.second->RoleId_;
+            this->Pass_ = lockedUser.second->Pass_;
+            isUserFound = true;
+         }
+         else {
+            // 不論是否找到 user, 應該都要回覆, 避免攻擊得知 userid.
+            // this->OnVerifyCB_(AuthR{fon9_Auth_EUserPass, "unknown-user"}, this);
+            // return;
+            isUserFound = false;
+         }
+      }
+      if (!isUserFound)
+         this->SetDefaultPass();
+      const size_t   kServerNonceLengthReserve = 50;
+      std::string    svr1stMsg;
+      svr1stMsg.reserve(reqstr.size() + kServerNonceLengthReserve + 128);
+      reqstr.AppendTo(svr1stMsg);
+      this->AppendServerNonce(svr1stMsg);
+      const size_t   kNonceLength = svr1stMsg.size();
+      svr1stMsg.append(",s=", 3);
+      this->AppendSaltAndIterator(svr1stMsg);
+      if (isUserFound) {
+         this->AuthMessage_.append(svr1stMsg);
+         // ,client_final_message_without_proof
+         if (gs2HeaderForAuthz.empty())
+            this->AuthMessage_.append(",c=biws,");
+         else {
+            this->AuthMessage_.append(",c=");
+            size_t e64sz = Base64EncodeLengthNoEOS(gs2HeaderForAuthz.size());
+            this->AuthMessage_.resize(this->AuthMessage_.size() + e64sz);
+            Base64Encode(&*(this->AuthMessage_.end() - signed_cast(e64sz)), e64sz, gs2HeaderForAuthz.begin(), gs2HeaderForAuthz.size());
+            this->AuthMessage_.push_back(',');
+         }
+         this->AuthMessage_.append(svr1stMsg.c_str(), kNonceLength);
+      }
+      this->OnVerifyCB_(AuthR(fon9_Auth_NeedsMore, std::move(svr1stMsg)), this);
+      return;
    }
    this->OnVerifyCB_(AuthR{fon9_Auth_EArgs_Format}, this);
 }
@@ -110,9 +125,13 @@ void SaslScramServer::ParseClientProof(const AuthRequest& req) {
    //                                          \_ change pass request.
    //         此時的 AuthMessage = SaslAuthMessage + ",s="
    //         然後用調整後的 AuthMessage 計算 Proof.
-   if (reqstr.size() < 12) // "c=biws,r=,p="
+   if (reqstr.size() < 12) // "c=biws,r=,p="; or "c=Base64Encode("n,a=AUTHZ,"),r=,p="
       return this->ProofError(req);
-   const char* pProof = StrView::traits_type::find(reqstr.begin() + 10, reqstr.size() - 10, ',');
+   const char* pProof = StrView::traits_type::find(reqstr.begin() + 6, reqstr.size() - 6, ',');
+   if (!pProof || (pProof[1] != 'r' && pProof[2] != '='))
+      return this->ProofError(req);
+   pProof += 3;
+   pProof = StrView::traits_type::find(pProof, unsigned_cast(reqstr.end() - pProof), ',');
    if (!pProof)
       return this->ProofError(req);
    if (pProof[1] == 's' && pProof[2] == '=') {

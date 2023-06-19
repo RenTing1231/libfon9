@@ -61,7 +61,7 @@ void RcServerNote_SaslAuth::OnAuthVerifyCB(auth::AuthR rcode, auth::AuthSessionS
    auth::AuthResult& authr = authSession->GetAuthResult();
    if (rcode.RCode_ == fon9_Auth_Success || rcode.RCode_ == fon9_Auth_PassChanged) {
       if (this->OnlineMgr_) {
-         this->OnlineMgr_->CheckLogon(ToStrView(authr.AuthcId_), "Rc",
+         this->OnlineMgr_->CheckLogon(authr, "Rc",
                                       ToStrView(this->RcSession_.GetDevice()->WaitGetDeviceId()),
                                       this, rcode);
       }
@@ -76,7 +76,7 @@ void RcServerNote_SaslAuth::OnAuthVerifyCB(auth::AuthR rcode, auth::AuthSessionS
       rcode.Info_ = authr.ExtInfo_;
       authr.UpdateRoleConfig();
    }
-   this->RcSession_.OnSaslDone(rcode, ToStrView(authr.AuthcId_));
+   this->RcSession_.OnSaslDone_AtServer(rcode, ToStrView(authr.AuthcId_), ToStrView(authr.AuthzId_));
 }
 void RcServerNote_SaslAuth::OnRecvFunctionCall(RcSession& ses, RcFunctionParam& param) {
    if (ses.GetSessionSt() > RcSessionSt::Logoning)
@@ -110,7 +110,7 @@ void RcFuncSaslServer::OnRecvFunctionCall(RcSession& ses, RcFunctionParam& param
    }
 }
 void RcFuncSaslServer::OnSessionLinkBroken(RcSession& ses) {
-   ses.SetUserId(StrView{});
+   ses.ClearUserId();
    if (this->OnlineMgr_) {
       if (RcServerNote_SaslAuth* authNote = ses.GetNote<RcServerNote_SaslAuth>(f9rc_FunctionCode_SASL)) {
          this->OnlineMgr_->OnLogonClientClosed(*authNote);

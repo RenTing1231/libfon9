@@ -62,9 +62,18 @@ class MessageQueue {
    }
 
    template <class MessageHandler>
+   static auto OnBeforeMessage(MessageHandler& messageHandler, MessageT& msg, LockerT* queue) -> decltype(messageHandler.OnBeforeMessage(msg, *queue)) {
+      messageHandler.OnBeforeMessage(msg, *queue);
+      assert(queue.owns_lock());
+   }
+   template <class MessageHandler>
+   static void OnBeforeMessage(MessageHandler&, ...) {
+   }
+   template <class MessageHandler>
    static auto OnMessage(MessageHandler& messageHandler, LockerT& queue) -> decltype(messageHandler.OnMessage(queue->front())) {
       MessageT msg(std::move(queue->front()));
       queue->pop_front();
+      OnBeforeMessage(messageHandler, &queue);
       queue.unlock();
       return messageHandler.OnMessage(msg);
    }
@@ -119,6 +128,11 @@ class MessageQueue {
 
    void WaitThreadJoin() {
       JoinThreads(this->ThreadPool_);
+   }
+
+protected:
+   QueueController& GetQueueController() {
+      return this->QueueController_;
    }
 
 public:

@@ -76,6 +76,7 @@ protected:
    fon9::io::RecvBufferSize OnDevice_Recv(fon9::io::Device& dev, fon9::DcQueue& rxbuf) override;
    void OnDevice_CommonTimer(fon9::io::Device& dev, fon9::TimeStamp now) override;
 
+   virtual void GetApReadyInfo(fon9::RevBufferList& rbuf);
    virtual void OnExgTmp_ApReady() = 0;
    /// 只有在 ApReady => 不是 Ready 時; 才會通知一次.
    virtual void OnExgTmp_ApBroken() = 0;

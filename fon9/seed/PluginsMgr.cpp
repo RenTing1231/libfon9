@@ -15,7 +15,6 @@ struct PluginsMgr::PluginsRec : public PluginsHolder {
    fon9_NON_COPYABLE(PluginsRec);
 
    const PluginsTreeSP  Owner_;
-   const CharVector     Id_;
    CharVector           FileName_;
    CharVector           EntryName_;
    CharVector           Description_;
@@ -273,9 +272,8 @@ void PluginsMgr::PluginsTree::TaskInvoker::MakeCallForWork() {
 }
 //--------------------------------------------------------------------------//
 PluginsMgr::PluginsRec::PluginsRec(PluginsTreeSP owner, StrView id)
-   : PluginsHolder{std::move(owner->Root_)}
-   , Owner_{std::move(owner)}
-   , Id_{id} {
+   : PluginsHolder(std::move(owner->Root_), id)
+   , Owner_{std::move(owner)} {
 }
 void PluginsMgr::PluginsRec::SetPluginStImpl(std::string stmsg) {
    // 避免走到 TaskQu_ thread 時, this 已經死亡, 所以使用 pthis 保留 this.

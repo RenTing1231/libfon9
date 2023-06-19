@@ -19,10 +19,15 @@ class f9tws_API ExgTradingLineFixArgs : public ExgLineArgs {
    using base = ExgLineArgs;
 public:
    fon9::FlowCounterArgs   FcArgs_;
+   fon9::FlowCounterArgs   LineFc_; // TCP 流量管制.
    void Clear() {
       base::Clear();
       this->FcArgs_.Clear();
+      this->LineFc_.FcCount_ = 0;
+      this->LineFc_.FcTimeMS_ = 0;
    }
+   // Fc=count/ms(交易所 FIX 流量管制);
+   // LineFc=count/ms(TCP流量管制: 參考 font::fmt::TradingLine 的說明)
    fon9::ConfigParser::Result OnTagValue(fon9::StrView tag, fon9::StrView& value);
 };
 /// - 不改變 args.Market_ 您必須自行處理.
@@ -44,6 +49,7 @@ fon9_WARN_DISABLE_PADDING;
 class f9tws_API ExgTradingLineFix : public f9fix::IoFixSession, public f9fmkt::TradingLine {
    fon9_NON_COPY_NON_MOVE(ExgTradingLineFix);
    using base = f9fix::IoFixSession;
+   using baseTradingLine = f9fmkt::TradingLine;
    unsigned RawAppendNo_;
 
 protected:

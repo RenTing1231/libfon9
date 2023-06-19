@@ -206,7 +206,7 @@ struct SeedImporterFactory : public SessionFactory {
       }
       args.Authr_.AuthzId_.assign(&this->Name_);
       args.Authr_.AuthcId_.assign(roleId);
-      this->AuthMgr_->RoleMgr_->GetRole(roleId, args.Authr_);
+      this->AuthMgr_->RoleMgr_->GetRole(roleId, args.Authr_, auth::RoleMgr::GetRoleMode_Renew);
       if (!this->AuthMgr_->GetPolicy<auth::PolicyAclAgent>(fon9_kCSTR_PolicyAclAgent_Name, args.Authr_, args.Acl_)) {
          errReason = "AuthMgr.GetPolicy." fon9_kCSTR_PolicyAclAgent_Name "|err=Not found.";
          return false;

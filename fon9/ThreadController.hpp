@@ -86,6 +86,10 @@ public:
    void NotifyAll(Locker& lk) {
       this->WaitPolicy_.NotifyAll(lk);
    }
+   /// 讓使用者可以調整 WaitPolicy 的參數;
+   WaitPolicy& GetWaitPolicy() {
+      return this->WaitPolicy_;
+   }
 
 private:
    void NotifyForEnd(Locker& lk, ThreadState st) {

@@ -8,8 +8,13 @@
 namespace fon9 { namespace rc {
 
 #define kRcSession_RecvBufferSize      static_cast<io::RecvBufferSize>(1024 * 4)
+#ifdef _DEBUG
+#define kRcSession_Logon_Timer         TimeInterval_Second(295)
+#define kRcSession_HbInterval          TimeInterval_Second(300)
+#else
 #define kRcSession_Logon_Timer         TimeInterval_Second(5)
 #define kRcSession_HbInterval          TimeInterval_Second(30)
+#endif
 
 // 每次 FunctionParam 大小限制, 避免封包錯誤(或免惡意連線), 造成記憶體用盡.
 #define kRcSession_FunctionParam_MaxSize  (1024 * 1024 * 64)
@@ -64,10 +69,12 @@ static ChecksumT FuncParam_CalcRcChecksum(DcQueue& buf, f9rc_FunctionCode funcCo
    return cksum;
 }
 //--------------------------------------------------------------------------//
-RcSession::RcSession(RcFunctionMgrSP mgr, RcSessionRole role, f9rc_RcFlag flags)
+RcSession::RcSession(RcFunctionMgrSP mgr, RcSessionRole role, f9rc_RcFlag flags, StrView userId)
    : FunctionMgr_(std::move(mgr))
    , Role_(role) {
    this->LocalParam_.Flags_ = flags;
+   this->UserId_.assign(StrFetchNoTrim(userId, '?')); // StrFetchNoTrim() 之後剩下的 userId 則為 authz;
+   this->AuthzId_.assign(userId);
 }
 RcSession::~RcSession() {
 }
@@ -158,19 +165,27 @@ void RcSession::SetApReady(StrView info) {
       this->RemoteIp_.AppendTo(exinfo);
       exinfo.append("|user=");
       this->UserId_.AppendTo(exinfo);
+      if (!this->AuthzId_.empty()) {
+         exinfo.append("|authz=");
+         this->AuthzId_.AppendTo(exinfo);
+      }
       exinfo.push_back('|');
       info.AppendTo(exinfo);
       this->Dev_->Manager_->OnSession_StateUpdated(*this->Dev_, ToStrView(exinfo), LogLevel::Info);
    }
    this->FunctionMgr_->OnSessionApReady(*this);
 }
-void RcSession::OnSaslDone(auth::AuthR rcode, StrView userid) {
-   this->UserId_.assign(userid);
+void RcSession::OnSaslDone(auth::AuthR rcode) {
    if (rcode.RCode_ == fon9_Auth_Success || rcode.RCode_ == fon9_Auth_PassChanged)
       this->SetApReady(ToStrView(rcode.Info_));
    else {
-      fon9_LOG_WARN("RcSession.OnSaslDone|dev=", ToPtr(this->Dev_),
-                    "|user=", userid, "|rcode=", rcode.RCode_, "|err=", rcode.Info_);
+      // fon9_LOG_WARN():
+      RevBufferList rbuf{kLogBlockNodeSize};
+      RevPrint(rbuf, "|rcode=", rcode.RCode_, "|err=", rcode.Info_, '\n');
+      if (!this->AuthzId_.empty())
+         RevPrint(rbuf, "|authz=", this->AuthzId_);
+      RevPrint(rbuf, "RcSession.OnSaslDone|dev=", ToPtr(this->Dev_), "|user=", this->UserId_);
+      LogWrite(LogLevel::Warn, std::move(rbuf));
       this->ForceLogout(std::move(rcode.Info_));
    }
 }

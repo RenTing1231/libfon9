@@ -31,7 +31,6 @@ fon9::io::SessionSP ExgTradingLineFixFactory::CreateTradingLine(ExgTradingLineMg
       return fon9::io::SessionSP{};
 
    return this->CreateTradingLineFix(lineMgr, args, std::move(fixSender));
-
 }
 
 } // namespaces

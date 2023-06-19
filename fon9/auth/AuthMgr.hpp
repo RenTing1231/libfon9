@@ -7,6 +7,48 @@
 namespace fon9 { namespace auth {
 
 /// \ingroup auth
+/// 使用者的 [狀態 or 管制] 旗標.
+enum class UserFlags : uint32_t {
+   /// 必須修改密碼後才能登入.
+   NeedChgPass = 0x01,
+   /// 使用者鎖定, 禁止認證.
+   Locked = 0x02,
+
+   /// 若無此旗標, 則底下有關 Authc/Authz 的設定都沒有作用.
+   AllowBeAuthz = 0x010,
+   /// 禁止 AuthcList_ 設定的 UserId 進行認證.
+   /// 若無此旗標, 則 UserRec.AuthcList_ 設定的為 [允許] 的 UserId;
+   AuthcListIsDeny = 0x020,
+   /// Authc 使用此 UserRec 當成 Authz 時, Authc 必須存在於 UserMgr;
+   /// 若無此旗標, 則 Authc 可以不存在於 UserMgr;
+   AuthcMustExists = 0x040,
+   /// 僅允許附屬帳號使用此 UserRec 登入; 此時 AuthcList 設定的是附屬 Id 列表;
+   /// 例: 此筆 UserId="fon"; AuthcList = ".web;.pc;.mobile"; 且有設定此旗標; 且無設定 AuthcListIsDeny;
+   /// 則: 僅允許登入時使用: "fon.web" 或 "fon.pc" 或 "fon.mobile"; 將 "fon" 當成 Authz 來執行登入;
+   AuthcOnlyAllowAtt = 0x080,
+   /// 優先使用 Authc 的 RoleId 設定;
+   /// - 若 Authc 不存在 or Authc.RoleId.empty() 則 AuthResult.RoleId_ = AuthcId;
+   /// - 若 Authc 存在, 且 !Authc.RoleId.empty() 則 AuthResult.RoleId_ = Authc.RoleId;
+   /// - 若無此旗標,      則 AuthResult.RoleId_ = AuthzId;
+   AuthcRoleFirst = 0x100,
+   /// 需要繼續匯入[另一個] User 的 PolicyKeys:
+   /// - 這裡的 [另一個] User 的 RoleId = IsEnumContains(AuthcRoleFirst ? Authz.RoleId : Authc.RoleId);
+   /// - 先處理 AuthcRoleFirst 的規則.
+   /// - 然後將另一個 User 設定的 RoleMgr.GetRole(RoleId) 匯入到 AuthResult.PolicyKeys_;
+   /// - 在取出 Policy 內容時, 若用 PolicyId = ([PolicyKeys 設定的 PolicyId], 若不存在則用 [優先者的 RoleId]);
+   ///   找不到需要的 Policy 時, 也 [不會] 再去用 [另一個的 RoleId] 去嘗試。
+   AuthcRoleMerge = 0x200,
+   /// - 在有 AuthcRoleMerge 的情況下:
+   /// - 若提供此旗標, 則: 匯入 PolicyKeys 不存在的 Policy, 若 Policy 已存在, 則取代;
+   /// - 無提供此旗標, 則: 匯入 PolicyKeys 不存在的 Policy, 若 Policy 已存在, 則不匯入;
+   /// - 匯入方式, 例 [優先使用的 PolicyKeys 已有 PoAcl, 且後續的也有設定 PoAcl]:
+   ///   - 若無此旗標, 則使用優先匯入的, 而[不會]將2個的 PoAcl 合併;
+   ///   - 若有此旗標, 則使用之後匯入的, 而[不會]將2個的 PoAcl 合併;
+   AuthcRoleReplace = 0x400,
+};
+fon9_ENABLE_ENUM_BITWISE_OP(UserFlags);
+
+/// \ingroup auth
 /// 認證結果.
 struct fon9_API AuthResult : public RoleConfig {
    AuthMgrSP   AuthMgr_;
@@ -17,9 +59,16 @@ struct fon9_API AuthResult : public RoleConfig {
    /// Tony? Alice? Bob?
    /// - 例如執行 sudo, 這裡用的是原本登入時的 UserId
    /// - 例如執行主管強迫, 這裡用的是營業員(or Keyin)的Id.
+   /// - 通常情況下, 這裡才使應用系統該應使用的 UserId, 例:
+   ///   Authc="fon.pc"; Authz="fon"; 此時登入後下單, 下單歸屬的 UserId 應為 "fon.pc";
+   ///   若需要詳查當初的 [授權Id:AuthzId], 則應從系統 log 尋找;
    UserId      AuthcId_;
    /// - 認證成功後的提示訊息: e.g. "Last login: 2017/09/08 10:50:55 from 192.168.1.3";
    std::string ExtInfo_;
+   UserFlags   UserFlags_{};
+   char        Padding____[4];
+   /// 若有 AuthzId_; 則可能需要額外匯入另一組 Role 設定;
+   RoleId      RoleId2_;
 
    AuthResult(AuthMgrSP authMgr) : AuthMgr_{std::move(authMgr)} {
    }
@@ -35,23 +84,26 @@ struct fon9_API AuthResult : public RoleConfig {
       this->AuthzId_.clear();
       this->AuthcId_.clear();
       this->ExtInfo_.clear();
+      this->UserFlags_ = UserFlags{};
+      this->RoleId2_.clear();
    }
 
-   /// 若 this->AuthzId_.empty()  返回: AuthcId_
-   /// 若 !this->AuthzId_.empty() 返回: AuthzId_
-   StrView GetUserId() const {
+   /// 取得此次需要使用哪個[授權]?
+   /// - 若 this->AuthzId_.empty()  返回: AuthcId_; 表示 Authc 沒有請求另外的授權;
+   /// - 若 !this->AuthzId_.empty() 返回: AuthzId_; 表示 Authc 請求使用 Authz 的授權;
+   StrView GetUserIdForAuthz() const {
       return this->AuthzId_.empty() ? ToStrView(this->AuthcId_) : ToStrView(this->AuthzId_);
    }
 
-   /// 若 this->AuthzId_.empty()  輸出: AuthcId_
-   /// 若 !this->AuthzId_.empty() 輸出: AuthzId_ + "/" + AuthcId_
+   /// 若 this->AuthzId_.empty()  輸出: AuthcId_;
+   /// 若 !this->AuthzId_.empty() 輸出: AuthcId_ + "?" + AuthzId_;
    void RevPrintUser(RevBuffer& rbuf) const;
    /// 輸出: RevPrintUser() + "|" + deviceId;
    void RevPrintUFrom(RevBuffer& rbuf, StrView deviceId) const;
    /// 輸出: RevPrintUser() + "|" + deviceId;
    std::string MakeUFrom(StrView deviceId) const;
 
-   /// 登入成功後, 使用 AuthResult 的人必須自行決定是否需要更新 RoleConfig.
+   /// 登入成功後, 使用 AuthResult 的人, 必須自行決定是否需要更新 RoleConfig.
    /// 因為有些登入只想要驗證 userid/pass 是否正確.
    void UpdateRoleConfig();
 
